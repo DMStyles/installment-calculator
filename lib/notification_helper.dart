@@ -4,7 +4,8 @@ import 'package:timezone/data/latest_10y.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationHelper {
-  static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
     // 1. Initialize Timezones
@@ -24,8 +25,8 @@ class NotificationHelper {
 
     // 5. Request Android 13+ permissions
     if (!kIsWeb) {
-      final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       if (androidPlugin != null) {
         await androidPlugin.requestNotificationsPermission();
         await androidPlugin.requestExactAlarmsPermission();
@@ -34,24 +35,30 @@ class NotificationHelper {
   }
 
   /// Schedules a local notification for an upcoming installment.
+  ///
+  /// [notificationsEnabled] — pass `AppSettings.notificationsEnabled` to skip if disabled.
+  /// [leadDays] — how many days before [scheduledDate] to send the reminder (default: 1).
   static Future<void> scheduleNotification({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
+    bool notificationsEnabled = true,
+    int leadDays = 1,
   }) async {
-    if (kIsWeb) return; // Local scheduled notifications are not supported on web
+    if (kIsWeb) return;
+    if (!notificationsEnabled) return; // Respect user preference
 
-    // Schedule 1 day before at 9:00 AM
+    // Schedule `leadDays` before the payment date at 9:00 AM
     final notificationDate = DateTime(
       scheduledDate.year,
       scheduledDate.month,
-      scheduledDate.day - 1,
+      scheduledDate.day - leadDays,
       9,
       0,
     );
 
-    // If scheduled time is in the past, skip scheduling
+    // If scheduled time is already in the past, skip
     if (notificationDate.isBefore(DateTime.now())) return;
 
     final tz.TZDateTime tzDate = tz.TZDateTime.from(notificationDate, tz.local);
@@ -74,7 +81,8 @@ class NotificationHelper {
       tzDate,
       platformDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
@@ -84,8 +92,9 @@ class NotificationHelper {
     await _notificationsPlugin.cancel(id);
   }
 
-  /// Cancels scheduled notifications for a deleted installment.
-  static Future<void> cancelNotificationsForInstallment(int baseId, int installmentCount) async {
+  /// Cancels all scheduled notifications for a deleted installment.
+  static Future<void> cancelNotificationsForInstallment(
+      int baseId, int installmentCount) async {
     if (kIsWeb) return;
     for (int i = 0; i < installmentCount; i++) {
       await _notificationsPlugin.cancel(baseId + i);

@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_settings.dart';
 import 'provider_select_screen.dart';
 import 'comparison_screen.dart';
 import 'guide_screen.dart';
 import 'tracker_screen.dart';
+import 'settings_screen.dart';
+import 'update_checker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _globalHistory = [];
   bool _isLoading = true;
+  UpdateInfo? _updateBanner; // non-null = show banner
+  bool _bannerDismissed = false;
 
   final NumberFormat _currencyFormat = NumberFormat.currency(locale: 'en_LK', symbol: 'Rs. ');
   final DateFormat _dateFormat = DateFormat('MMM d, h:mm a');
@@ -25,6 +31,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadGlobalHistory();
+    _silentUpdateCheck();
+  }
+
+  /// Runs in background — never blocks the UI.
+  Future<void> _silentUpdateCheck() async {
+    final info = await UpdateChecker.check();
+    if (mounted && info.hasUpdate && !_bannerDismissed) {
+      setState(() => _updateBanner = info);
+    }
   }
 
   Future<void> _loadGlobalHistory() async {
@@ -90,6 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<AppSettings>();
+    final isDark = settings.isDarkMode;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -101,7 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeader(),
+                  _buildHeader(context, isDark),
+                  if (_updateBanner != null && !_bannerDismissed) ...[
+                    const SizedBox(height: 14),
+                    _buildUpdateBanner(_updateBanner!),
+                  ],
                   const SizedBox(height: 24),
                   _buildDashboardGrid(),
                   const SizedBox(height: 32),
@@ -119,21 +141,96 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        const Text(
-          'Installment Hub',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Installment Hub',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            ),
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+              icon: Icon(
+                Icons.settings_outlined,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                size: 24,
+              ),
+              tooltip: 'Settings',
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
         Text(
           'Plan your purchases and find hidden BNPL fees.',
           style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
         ),
       ],
+    );
+  }
+
+  Widget _buildUpdateBanner(UpdateInfo info) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.new_releases_rounded, color: Color(0xFF3B82F6), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'v${info.latestVersion} is available!',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3B82F6),
+                  ),
+                ),
+                Text(
+                  'A new update is ready to download.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Update',
+                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () => setState(() => _bannerDismissed = true),
+            child: Icon(Icons.close_rounded, color: Colors.grey.shade500, size: 18),
+          ),
+        ],
+      ),
     );
   }
 
@@ -200,9 +297,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
+
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: color.withValues(alpha: 0.2), width: 1),
@@ -229,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -253,9 +353,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
+
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: color.withValues(alpha: 0.2), width: 1),
@@ -279,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Row(
@@ -301,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: EdgeInsets.symmetric(horizontal: 4.0),
       child: Text(
         'Recent Calculations',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -316,13 +419,17 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+
     if (_globalHistory.isEmpty) {
       return Card(
         elevation: 0,
-        color: const Color(0xFF1F2937),
+        color: cardBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF374151)),
+          side: BorderSide(color: borderColor),
         ),
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 32.0, horizontal: 20.0),
@@ -332,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(height: 12),
               Text(
                 'No calculation history found.',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 4),
               Text(
@@ -353,7 +460,6 @@ class _HomeScreenState extends State<HomeScreen> {
         final color = item['color'] as Color;
         final icon = item['icon'] as IconData;
 
-        // Formulate description based on provider installment structure
         String details = '';
         if (provider == 'Koko') {
           details = '3M: ${_currencyFormat.format(item['threeMonths'])}';
@@ -367,9 +473,9 @@ class _HomeScreenState extends State<HomeScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1F2937),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF374151)),
+            border: Border.all(color: borderColor),
           ),
           child: Row(
             children: [
@@ -405,11 +511,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           'Base: ${_currencyFormat.format(item['amount'])}',
-                          style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                         Text(
                           details,
-                          style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),

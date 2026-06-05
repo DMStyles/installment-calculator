@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_settings.dart';
 import 'notification_helper.dart';
 
 class TrackerScreen extends StatefulWidget {
@@ -97,11 +99,15 @@ class _TrackerScreenState extends State<TrackerScreen> {
       final bool shouldNotify = firstIsPaid ? i > 0 : true;
       if (shouldNotify) {
         try {
+          // Read user notification preferences from AppSettings
+          final settings = context.read<AppSettings>();
           await NotificationHelper.scheduleNotification(
             id: baseNotificationId + i,
             title: 'Upcoming $name Payment',
-            body: 'Your installment ${i + 1} of ${_currencyFormat.format(installmentAmount)} with $provider is due tomorrow.',
+            body: 'Your installment ${i + 1} of ${_currencyFormat.format(installmentAmount)} with $provider is due in ${settings.notificationLeadDays} day${settings.notificationLeadDays > 1 ? 's' : ''}.',
             scheduledDate: paymentDate,
+            notificationsEnabled: settings.notificationsEnabled,
+            leadDays: settings.notificationLeadDays,
           );
         } catch (_) {
           // Notification scheduling failed (e.g. permission denied) — continue saving
@@ -447,12 +453,18 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<AppSettings>().isDarkMode;
+    final bg = isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6);
+    final appBarBg = isDark ? const Color(0xFF1F2937) : Colors.white;
+    final appBarFg = isDark ? Colors.white : const Color(0xFF111827);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF111827),
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text('Installment Manager'),
-        backgroundColor: const Color(0xFF1F2937),
+        title: Text('Installment Manager', style: TextStyle(color: appBarFg)),
+        backgroundColor: appBarBg,
         elevation: 0,
+        iconTheme: IconThemeData(color: appBarFg),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddBottomSheet,
@@ -483,8 +495,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1F2937),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1F2937),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.receipt_long_outlined, size: 64, color: Colors.blue),
@@ -518,13 +530,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
     final int totalCount = payments.length;
     final double progress = paidCount / totalCount;
 
+    final isDark = context.read<AppSettings>().isDarkMode;
+    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+
     return Card(
-      color: const Color(0xFF1F2937),
+      color: cardBg,
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: const Color(0xFF374151), width: 1),
+        side: BorderSide(color: cardBorder, width: 1),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
