@@ -5,13 +5,17 @@ class GuideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF5E5E5E);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F1F1F);
+    final cardBg = isDark ? const Color(0xFF1E2025) : Colors.white;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Shopping Guide', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: const Color(0xFF1F2937),
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Shopping Guide', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -23,16 +27,20 @@ class GuideScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  _buildSectionHeader('Understanding BNPL (Buy Now Pay Later)'),
+                  _buildSectionHeader(context, 'Understanding BNPL (Buy Now Pay Later)'),
                   const SizedBox(height: 12),
-                  _buildMainGuideCard(),
+                  _buildMainGuideCard(context, cardBg, textPrimary, textSecondary),
                   const SizedBox(height: 24),
-                  _buildSectionHeader('Provider Details'),
+                  _buildSectionHeader(context, 'Provider Details'),
                   const SizedBox(height: 12),
                   _buildProviderGuideCard(
+                    context: context,
                     title: 'Koko (by Daraz)',
                     accentColor: const Color(0xFFFFB6C1),
-                    icon: Icons.shopping_bag,
+                    icon: Icons.shopping_bag_outlined,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
                     details: [
                       '⏱️ **Installment Period:** 3 months (3 equal payments). First payment made immediately at checkout, next two over the next 2 months.',
                       '💰 **Processing Fee:** Defaults to 9% depending on the store. Some stores offer 0% promotional terms, but others may mark up prices.',
@@ -42,9 +50,13 @@ class GuideScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   _buildProviderGuideCard(
+                    context: context,
                     title: 'PayZy',
                     accentColor: const Color(0xFF00AEEF),
                     icon: Icons.bolt,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
                     details: [
                       '⏱️ **Installment Period:** Flexible repayment terms of 2, 3, or 4 months.',
                       '💰 **Processing Fee:** Typically 8% added directly to the checkout total, but merchants can configure their own rates.',
@@ -53,9 +65,13 @@ class GuideScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   _buildProviderGuideCard(
+                    context: context,
                     title: 'MintPay',
                     accentColor: const Color(0xFF10B981),
-                    icon: Icons.eco,
+                    icon: Icons.eco_outlined,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
                     details: [
                       '⏱️ **Installment Period:** 3 months. Splits the bill into 3 interest-free payments (1/3 today, 1/3 in 30 days, 1/3 in 60 days).',
                       '💰 **Processing Fee:** 0% on standard MintPay partner transactions. However, some independent merchants charge a manual fee.',
@@ -63,7 +79,7 @@ class GuideScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  _buildSurchargeTipsCard(),
+                  _buildSurchargeTipsCard(context, textPrimary, textSecondary),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -74,49 +90,52 @@ class GuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: isDark ? Colors.white : const Color(0xFF1F1F1F),
         ),
       ),
     );
   }
 
-  Widget _buildMainGuideCard() {
+  Widget _buildMainGuideCard(BuildContext context, Color cardBg, Color textPrimary, Color textSecondary) {
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: cardBg,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFF374151)),
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(20.0),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
             Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue, size: 24),
-                SizedBox(width: 12),
+                Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
+                const SizedBox(width: 12),
                 Text(
                   'What is BNPL?',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               'Buy Now Pay Later (BNPL) lets you split purchase payments into interest-free installments. '
               'While the platforms themselves advertise 0% interest, merchants and shops often add a custom processing '
               'fee (surcharge) at checkout to cover their platform costs. '
               'Always use this calculator to check total costs before purchasing.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF), height: 1.5),
+              style: TextStyle(fontSize: 13, color: textSecondary, height: 1.5),
             ),
           ],
         ),
@@ -125,28 +144,40 @@ class GuideScreen extends StatelessWidget {
   }
 
   Widget _buildProviderGuideCard({
+    required BuildContext context,
     required String title,
     required Color accentColor,
     required IconData icon,
     required List<String> details,
+    required Color cardBg,
+    required Color textPrimary,
+    required Color textSecondary,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: cardBg,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: accentColor.withValues(alpha: 0.2), width: 1),
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: isDark ? accentColor.withValues(alpha: 0.15) : accentColor.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
       ),
       child: Theme(
-        data: ThemeData.dark().copyWith(dividerColor: Colors.transparent),
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
         child: ExpansionTile(
-          leading: Icon(icon, color: accentColor),
+          leading: Icon(icon, color: accentColor, size: 24),
           title: Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 16),
           ),
           iconColor: accentColor,
-          collapsedIconColor: const Color(0xFF9CA3AF),
+          collapsedIconColor: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF5E5E5E),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 20.0),
@@ -155,7 +186,7 @@ class GuideScreen extends StatelessWidget {
                 children: details.map((detail) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
-                    child: _buildFormattedText(detail),
+                    child: _buildFormattedText(detail, textPrimary, textSecondary),
                   );
                 }).toList(),
               ),
@@ -166,39 +197,44 @@ class GuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSurchargeTipsCard() {
+  Widget _buildSurchargeTipsCard(BuildContext context, Color textPrimary, Color textSecondary) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final warningColor = isDark ? Colors.amber.shade200 : Colors.amber.shade800;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+        color: isDark ? Colors.amber.withValues(alpha: 0.06) : Colors.amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? Colors.amber.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.shield_outlined, color: Colors.amber.shade300, size: 22),
+              Icon(Icons.shield_outlined, color: warningColor, size: 22),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'Avoiding Surcharges & Extra Fees',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          _buildTipRow('🛒 Compare Store Prices:', 'Some shops sell products cheaper but add high BNPL checkout fees. Compare the total checkout cost (Price + BNPL Fee) across different shops.'),
+          _buildTipRow('🛒 Compare Store Prices:', 'Some shops sell products cheaper but add high BNPL checkout fees. Compare the total checkout cost (Price + BNPL Fee) across different shops.', textPrimary, textSecondary),
           const SizedBox(height: 12),
-          _buildTipRow('🚚 Delivery Charges:', 'Always verify if the shop has added shipping/handling to the checkout price. The "Find Shop Fee" calculator will calculate shipping as a fee if it is not subtracted first.'),
+          _buildTipRow('🚚 Delivery Charges:', 'Always verify if the shop has added shipping/handling to the checkout price. The "Find Shop Fee" calculator will calculate shipping as a fee if it is not subtracted first.', textPrimary, textSecondary),
           const SizedBox(height: 12),
-          _buildTipRow('💳 Credit Limit Checks:', 'Always keep your primary debit or credit card funded. If a recurring monthly installment payment fails due to insufficient balance, the provider will charge you a hefty penalty fee.'),
+          _buildTipRow('💳 Credit Limit Checks:', 'Always keep your primary debit or credit card funded. If a recurring monthly installment payment fails due to insufficient balance, the provider will charge you a hefty penalty fee.', textPrimary, textSecondary),
         ],
       ),
     );
   }
 
-  Widget _buildTipRow(String title, String body) {
+  Widget _buildTipRow(String title, String body, Color textPrimary, Color textSecondary) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -208,12 +244,12 @@ class GuideScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
               ),
               const SizedBox(height: 2),
               Text(
                 body,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF), height: 1.4),
+                style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4),
               ),
             ],
           ),
@@ -222,7 +258,7 @@ class GuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFormattedText(String text) {
+  Widget _buildFormattedText(String text, Color textPrimary, Color textSecondary) {
     final RegExp regExp = RegExp(r'\*\*(.*?)\*\*');
     final List<TextSpan> spans = [];
     int start = 0;
@@ -231,12 +267,12 @@ class GuideScreen extends StatelessWidget {
       if (match.start > start) {
         spans.add(TextSpan(
           text: text.substring(start, match.start),
-          style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
+          style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
         ));
       }
       spans.add(TextSpan(
         text: match.group(1),
-        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13, height: 1.4),
+        style: TextStyle(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 13, height: 1.4),
       ));
       start = match.end;
     }
@@ -244,7 +280,7 @@ class GuideScreen extends StatelessWidget {
     if (start < text.length) {
       spans.add(TextSpan(
         text: text.substring(start),
-        style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
+        style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
       ));
     }
 

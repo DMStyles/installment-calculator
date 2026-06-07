@@ -4,12 +4,17 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_settings.dart';
+import 'app_theme.dart';
 import 'provider_select_screen.dart';
 import 'comparison_screen.dart';
 import 'guide_screen.dart';
 import 'tracker_screen.dart';
-import 'settings_screen.dart';
 import 'update_checker.dart';
+import 'page_transitions.dart';
+import 'settings_screen.dart';
+import 'widgets/bounce_tap.dart';
+import 'widgets/fade_in_item.dart';
+import 'widgets/animated_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,10 +26,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _globalHistory = [];
   bool _isLoading = true;
-  UpdateInfo? _updateBanner; // non-null = show banner
+  UpdateInfo? _updateBanner;
   bool _bannerDismissed = false;
 
-  final NumberFormat _currencyFormat = NumberFormat.currency(locale: 'en_LK', symbol: 'Rs. ');
+  final NumberFormat _currencyFormat =
+      NumberFormat.currency(locale: 'en_LK', symbol: 'Rs. ');
   final DateFormat _dateFormat = DateFormat('MMM d, h:mm a');
 
   @override
@@ -34,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _silentUpdateCheck();
   }
 
-  /// Runs in background — never blocks the UI.
   Future<void> _silentUpdateCheck() async {
     final info = await UpdateChecker.check();
     if (mounted && info.hasUpdate && !_bannerDismissed) {
@@ -47,91 +52,120 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final List<Map<String, dynamic>> allItems = [];
 
-    // Load Koko History
-    final String? kokoJson = prefs.getString('kokoHistory');
-    if (kokoJson != null) {
-      final List<dynamic> decoded = json.decode(kokoJson);
-      for (var item in decoded) {
-        allItems.add({
-          ...Map<String, dynamic>.from(item),
-          'provider': 'Koko',
-          'color': const Color(0xFFFFB6C1),
-          'icon': Icons.shopping_bag,
-        });
+    final providers = [
+      {
+        'key': 'kokoHistory',
+        'provider': 'Koko',
+        'color': const Color(0xFFFFB6C1),
+        'icon': Icons.shopping_bag_outlined,
+      },
+      {
+        'key': 'payzyHistory',
+        'provider': 'PayZy',
+        'color': const Color(0xFF00AEEF),
+        'icon': Icons.bolt_outlined,
+      },
+      {
+        'key': 'mintpayHistory',
+        'provider': 'MintPay',
+        'color': const Color(0xFF10B981),
+        'icon': Icons.eco_outlined,
+      },
+    ];
+
+    for (final p in providers) {
+      final json = prefs.getString(p['key'] as String);
+      if (json != null) {
+        final List<dynamic> decoded = jsonDecode(json);
+        for (var item in decoded) {
+          allItems.add({
+            ...Map<String, dynamic>.from(item),
+            'provider': p['provider'],
+            'color': p['color'],
+            'icon': p['icon'],
+          });
+        }
       }
     }
 
-    // Load PayZy History
-    final String? payzyJson = prefs.getString('payzyHistory');
-    if (payzyJson != null) {
-      final List<dynamic> decoded = json.decode(payzyJson);
-      for (var item in decoded) {
-        allItems.add({
-          ...Map<String, dynamic>.from(item),
-          'provider': 'PayZy',
-          'color': const Color(0xFF00AEEF),
-          'icon': Icons.bolt,
-        });
-      }
-    }
-
-    // Load MintPay History
-    final String? mintpayJson = prefs.getString('mintpayHistory');
-    if (mintpayJson != null) {
-      final List<dynamic> decoded = json.decode(mintpayJson);
-      for (var item in decoded) {
-        allItems.add({
-          ...Map<String, dynamic>.from(item),
-          'provider': 'MintPay',
-          'color': const Color(0xFF10B981),
-          'icon': Icons.eco,
-        });
-      }
-    }
-
-    // Sort by timestamp descending
     allItems.sort((a, b) {
-      final DateTime timeA = DateTime.parse(a['timestamp'] ?? '');
-      final DateTime timeB = DateTime.parse(b['timestamp'] ?? '');
+      final timeA = DateTime.parse(a['timestamp'] ?? '');
+      final timeB = DateTime.parse(b['timestamp'] ?? '');
       return timeB.compareTo(timeA);
     });
 
-    // Take top 3
     setState(() {
       _globalHistory = allItems.take(3).toList();
       _isLoading = false;
     });
   }
 
+  void _navigate(Widget screen) {
+    Navigator.push(
+      context,
+      PixelPageRoute(builder: (_) => screen),
+    ).then((_) => _loadGlobalHistory());
+  }
+
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<AppSettings>();
-    final isDark = settings.isDarkMode;
+    context.watch<AppSettings>();
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: AppTheme.surface(context),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 500),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeader(context, isDark),
-                  if (_updateBanner != null && !_bannerDismissed) ...[
-                    const SizedBox(height: 14),
-                    _buildUpdateBanner(_updateBanner!),
-                  ],
-                  const SizedBox(height: 24),
-                  _buildDashboardGrid(),
+                  // ── Header ──────────────────────────────────────────────
+                  FadeInItem(
+                    delay: const Duration(milliseconds: 0),
+                    child: _buildHeader(context),
+                  ),
+
+                  // ── Update Banner ────────────────────────────────────────
+                  AnimatedSection(
+                    visible: _updateBanner != null && !_bannerDismissed,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 14),
+                        if (_updateBanner != null)
+                          _buildUpdateBanner(_updateBanner!),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // ── Dashboard Grid ───────────────────────────────────────
+                  FadeInItem(
+                    delay: const Duration(milliseconds: 80),
+                    child: _buildDashboardGrid(context),
+                  ),
+
                   const SizedBox(height: 32),
-                  _buildRecentCalculationsHeader(),
+
+                  // ── Recent Calculations ──────────────────────────────────
+                  FadeInItem(
+                    delay: const Duration(milliseconds: 160),
+                    child: _buildRecentHeader(context),
+                  ),
                   const SizedBox(height: 12),
-                  _buildRecentCalculationsList(),
-                  const SizedBox(height: 32),
-                  _buildSurchargeWarning(),
+                  _buildRecentList(context),
+
+                  const SizedBox(height: 24),
+
+                  // ── Surcharge Warning ────────────────────────────────────
+                  FadeInItem(
+                    delay: const Duration(milliseconds: 240),
+                    child: _buildSurchargeWarning(context),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -141,51 +175,71 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // ─── Header ───────────────────────────────────────────────────────────────
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const SizedBox(height: 4),
+            Text(
               'Installment Hub',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary(context),
+                letterSpacing: -0.5,
+              ),
             ),
-            IconButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            const SizedBox(height: 4),
+            Text(
+              'Plan your BNPL purchases smartly.',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary(context),
               ),
-              icon: Icon(
-                Icons.settings_outlined,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                size: 24,
-              ),
-              tooltip: 'Settings',
             ),
           ],
         ),
-        Text(
-          'Plan your purchases and find hidden BNPL fees.',
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+        BounceTap(
+          onTap: () => Navigator.push(
+            context,
+            PixelPageRoute(builder: (_) => const SettingsScreen()),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.cardAlt(context),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.border(context)),
+            ),
+            child: Icon(
+              Icons.settings_outlined,
+              color: AppTheme.textSecondary(context),
+              size: 22,
+            ),
+          ),
         ),
       ],
     );
   }
 
+  // ─── Update Banner ────────────────────────────────────────────────────────
   Widget _buildUpdateBanner(UpdateInfo info) {
+    final primary = AppTheme.primary(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.35)),
+        color: primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+        border: Border.all(color: primary.withValues(alpha: 0.30), width: 1.5),
       ),
       child: Row(
         children: [
-          const Icon(Icons.new_releases_rounded, color: Color(0xFF3B82F6), size: 20),
+          Icon(Icons.new_releases_rounded, color: primary, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -193,134 +247,133 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   'v${info.latestVersion} is available!',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF3B82F6),
+                    color: primary,
                   ),
                 ),
                 Text(
-                  'A new update is ready to download.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  'Tap to download the latest update.',
+                  style: TextStyle(
+                      fontSize: 11, color: AppTheme.textSecondary(context)),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
+          BounceTap(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              PixelPageRoute(builder: (_) => const SettingsScreen()),
             ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6),
-                borderRadius: BorderRadius.circular(8),
+                color: primary,
+                borderRadius: BorderRadius.circular(AppTheme.radiusPill),
               ),
               child: const Text(
                 'Update',
-                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
           const SizedBox(width: 6),
           GestureDetector(
             onTap: () => setState(() => _bannerDismissed = true),
-            child: Icon(Icons.close_rounded, color: Colors.grey.shade500, size: 18),
+            child: Icon(Icons.close_rounded,
+                color: AppTheme.textSecondary(context), size: 18),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDashboardGrid() {
+  // ─── Dashboard Grid ───────────────────────────────────────────────────────
+  Widget _buildDashboardGrid(BuildContext context) {
     return Column(
       children: [
-        _buildDashboardCard(
+        _dashCard(
+          context: context,
           title: 'BNPL Calculators',
-          subtitle: 'Calculate Koko, PayZy, and MintPay plans',
-          icon: Icons.calculate,
-          color: Colors.blue,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProviderSelectScreen()),
-          ).then((_) => _loadGlobalHistory()),
+          subtitle: 'Koko, PayZy & MintPay fee calculators',
+          icon: Icons.calculate_outlined,
+          color: AppTheme.primary(context),
+          onTap: () => _navigate(const ProviderSelectScreen()),
+          delay: const Duration(milliseconds: 100),
         ),
-        const SizedBox(height: 16),
-        _buildDashboardCard(
+        const SizedBox(height: 12),
+        _dashCard(
+          context: context,
           title: 'Installment Manager',
-          subtitle: 'Track payments, remaining terms & get reminders',
-          icon: Icons.receipt_long,
-          color: Colors.green,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const TrackerScreen()),
-          ).then((_) => _loadGlobalHistory()),
+          subtitle: 'Track payments & get due-date reminders',
+          icon: Icons.receipt_long_outlined,
+          color: const Color(0xFF10B981),
+          onTap: () => _navigate(const TrackerScreen()),
+          delay: const Duration(milliseconds: 160),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _buildSquareDashboardCard(
-                title: 'Compare Prices',
-                icon: Icons.compare_arrows,
-                color: Colors.purple,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ComparisonScreen()),
-                ).then((_) => _loadGlobalHistory()),
+              child: _miniDashCard(
+                context: context,
+                title: 'Compare',
+                icon: Icons.compare_arrows_rounded,
+                color: const Color(0xFF818CF8),
+                onTap: () => _navigate(const ComparisonScreen()),
+                delay: const Duration(milliseconds: 220),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
-              child: _buildSquareDashboardCard(
-                title: 'Shopping Guides',
-                icon: Icons.menu_book,
-                color: Colors.teal,
+              child: _miniDashCard(
+                context: context,
+                title: 'Guides',
+                icon: Icons.menu_book_rounded,
+                color: const Color(0xFF34D399),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const GuideScreen()),
+                  PixelPageRoute(builder: (_) => const GuideScreen()),
                 ),
+                delay: const Duration(milliseconds: 260),
               ),
             ),
           ],
-        )
+        ),
       ],
     );
   }
 
-  Widget _buildDashboardCard({
+  Widget _dashCard({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    required Duration delay,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
-
-    return Card(
-      elevation: 0,
-      color: cardBg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: InkWell(
+    return FadeInItem(
+      delay: delay,
+      child: BounceTap(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 22.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          decoration: AppTheme.cardDecoration(context, accentBorder: color),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(11),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.iconBg(context, color),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(icon, color: color, size: 26),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -329,17 +382,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary(context),
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary(context),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFF6B7280)),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppTheme.textHint(context),
+                size: 14,
+              ),
             ],
           ),
         ),
@@ -347,49 +411,51 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSquareDashboardCard({
+  Widget _miniDashCard({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    required Duration delay,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
-
-    return Card(
-      elevation: 0,
-      color: cardBg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: InkWell(
+    return FadeInItem(
+      delay: delay,
+      child: BounceTap(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: AppTheme.cardDecoration(context, accentBorder: color),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppTheme.iconBg(context, color),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: 22),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Text(
                 title,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary(context),
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Open tool', style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
-                  Icon(Icons.arrow_forward, color: color, size: 14),
+                  Text(
+                    'Open',
+                    style: TextStyle(
+                        fontSize: 11, color: AppTheme.textSecondary(context)),
+                  ),
+                  Icon(Icons.arrow_forward_rounded, color: color, size: 13),
                 ],
               ),
             ],
@@ -399,52 +465,54 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRecentCalculationsHeader() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.0),
-      child: Text(
-        'Recent Calculations',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  // ─── Recent Calculations ──────────────────────────────────────────────────
+  Widget _buildRecentHeader(BuildContext context) {
+    return Text(
+      'Recent Calculations',
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.textPrimary(context),
       ),
     );
   }
 
-  Widget _buildRecentCalculationsList() {
+  Widget _buildRecentList(BuildContext context) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(strokeWidth: 2),
+          padding: const EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.primary(context),
+          ),
         ),
       );
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1F2937) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
-
     if (_globalHistory.isEmpty) {
-      return Card(
-        elevation: 0,
-        color: cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: borderColor),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 32.0, horizontal: 20.0),
+      return FadeInItem(
+        delay: const Duration(milliseconds: 200),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+          decoration: AppTheme.cardDecoration(context),
           child: Column(
             children: [
-              Icon(Icons.history_toggle_off, color: Color(0xFF6B7280), size: 36),
-              SizedBox(height: 12),
+              Icon(Icons.history_toggle_off_rounded,
+                  color: AppTheme.textHint(context), size: 36),
+              const SizedBox(height: 12),
               Text(
-                'No calculation history found.',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                'No calculation history yet.',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary(context)),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'Use the calculators to save calculations.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                'Use the calculators above to get started.',
+                style: TextStyle(
+                    fontSize: 12, color: AppTheme.textSecondary(context)),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -454,100 +522,105 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Column(
-      children: _globalHistory.map((item) {
+      children: _globalHistory.asMap().entries.map((entry) {
+        final i = entry.key;
+        final item = entry.value;
         final timestamp = DateTime.parse(item['timestamp'] ?? '');
-        final provider = item['provider'] ?? '';
+        final provider = item['provider'] as String;
         final color = item['color'] as Color;
         final icon = item['icon'] as IconData;
+        final details = '3M: ${_currencyFormat.format(item['threeMonths'])}';
 
-        String details = '';
-        if (provider == 'Koko') {
-          details = '3M: ${_currencyFormat.format(item['threeMonths'])}';
-        } else if (provider == 'PayZy') {
-          details = '3M: ${_currencyFormat.format(item['threeMonths'])}';
-        } else if (provider == 'MintPay') {
-          details = '3M: ${_currencyFormat.format(item['threeMonths'])}';
-        }
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+        return FadeInItem(
+          delay: Duration(milliseconds: 200 + i * 60),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: AppTheme.cardDecoration(context),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: AppTheme.iconBg(context, color),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, color: color, size: 19),
                 ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          provider,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
-                        ),
-                        Text(
-                          _dateFormat.format(timestamp),
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Base: ${_currencyFormat.format(item['amount'])}',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          details,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            provider,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: color),
+                          ),
+                          Text(
+                            _dateFormat.format(timestamp),
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: AppTheme.textHint(context)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Base: ${_currencyFormat.format(item['amount'])}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimary(context)),
+                          ),
+                          Text(
+                            details,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary(context)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildSurchargeWarning() {
+  // ─── Surcharge Warning ────────────────────────────────────────────────────
+  Widget _buildSurchargeWarning(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
-      ),
+      decoration: AppTheme.warningDecoration(context),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade300, size: 20),
+          Icon(Icons.warning_amber_rounded,
+              color: isDark ? Colors.amber.shade300 : Colors.amber.shade700,
+              size: 20),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Checkout rates can vary depending on the shop. Always double-check fee structures before purchase.',
+              'Checkout rates can vary per shop. Always double-check fees before purchasing.',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFFD1D5DB),
+                color: AppTheme.textSecondary(context),
                 height: 1.4,
               ),
             ),

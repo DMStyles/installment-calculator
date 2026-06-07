@@ -108,10 +108,9 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Compare Providers', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: const Color(0xFF1F2937),
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Compare Providers', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -150,41 +149,47 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   Widget _buildInputCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF5E5E5E);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F1F1F);
+    
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: isDark ? const Color(0xFF1E2025) : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFF374151)),
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Enter Product Price',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textSecondary),
             ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _amountCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
-              style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, color: textPrimary, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 prefixText: 'Rs. ',
-                prefixStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF)),
+                prefixStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textSecondary),
                 hintText: 'e.g. 25,000',
-                hintStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 18, fontWeight: FontWeight.normal),
+                hintStyle: TextStyle(color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF), fontSize: 18, fontWeight: FontWeight.normal),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF374151)),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
                 ),
               ),
             ),
@@ -195,9 +200,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   Widget _buildConfigToggle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF5E5E5E);
+
     return InkWell(
       onTap: () => setState(() => _showFeesConfig = !_showFeesConfig),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
         child: Row(
@@ -205,17 +213,17 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.settings, color: Color(0xFF9CA3AF), size: 18),
+                Icon(Icons.settings_outlined, color: textSecondary, size: 18),
                 const SizedBox(width: 8),
                 Text(
                   _showFeesConfig ? 'Hide Custom Fee Rates' : 'Adjust Default Fee Rates',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 13, color: textSecondary, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
             Icon(
               _showFeesConfig ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              color: const Color(0xFF9CA3AF),
+              color: textSecondary,
               size: 20,
             ),
           ],
@@ -225,21 +233,26 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   Widget _buildFeesConfigCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F1F1F);
+    
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: isDark ? const Color(0xFF1E2025) : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFF374151)),
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Customize Platform Fees (%)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary),
             ),
             const SizedBox(height: 16),
             Row(
@@ -264,26 +277,30 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   Widget _buildMiniFeeInput(String label, TextEditingController ctrl, Color accentColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF5E5E5E);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F1F1F);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+        Text(label, style: TextStyle(fontSize: 11, color: textSecondary)),
         const SizedBox(height: 6),
         TextFormField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: textPrimary, fontSize: 14),
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             suffixText: '%',
-            suffixStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+            suffixStyle: TextStyle(color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF), fontSize: 12),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF374151)),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: accentColor, width: 2),
             ),
           ),
@@ -298,12 +315,15 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     required Map<String, dynamic> payzy,
     required Map<String, dynamic> mintpay,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F1F1F);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Side-by-Side Comparison',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
         ),
         const SizedBox(height: 16),
         
@@ -314,7 +334,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           installments: koko['installments'],
           accentColor: const Color(0xFFFFB6C1),
           logoPath: 'assets/logos/koko.png',
-          fallbackIcon: Icons.shopping_bag,
+          fallbackIcon: Icons.shopping_bag_outlined,
           isBestValue: bestProvider == 'Koko',
         ),
         const SizedBox(height: 12),
@@ -338,7 +358,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           installments: mintpay['installments'],
           accentColor: const Color(0xFF10B981),
           logoPath: 'assets/logos/mintpay.png',
-          fallbackIcon: Icons.eco,
+          fallbackIcon: Icons.eco_outlined,
           isBestValue: bestProvider == 'MintPay',
         ),
       ],
@@ -354,13 +374,20 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     required IconData fallbackIcon,
     required bool isBestValue,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF5E5E5E);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F1F1F);
+    final cardBg = isDark ? const Color(0xFF1E2025) : Colors.white;
+
     return Card(
       elevation: 0,
-      color: const Color(0xFF1F2937),
+      color: cardBg,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         side: BorderSide(
-          color: isBestValue ? accentColor.withValues(alpha: 0.5) : const Color(0xFF374151),
+          color: isBestValue 
+              ? accentColor.withValues(alpha: 0.7) 
+              : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: isBestValue ? 2 : 1,
         ),
       ),
@@ -374,11 +401,11 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: accentColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     child: Image.asset(
                       logoPath,
                       fit: BoxFit.contain,
@@ -395,12 +422,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                     children: [
                       Text(
                         providerName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Total: ${_currencyFormat.format(total)}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                        style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                     ],
                   ),
@@ -409,14 +436,14 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.2),
+                      color: accentColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: accentColor.withValues(alpha: 0.5)),
+                      border: Border.all(color: accentColor.withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.stars, color: accentColor, size: 14),
+                        Icon(Icons.stars_rounded, color: accentColor, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           'Best Value',
@@ -432,7 +459,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            const Divider(color: Color(0xFF374151), height: 1),
+            Divider(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5), height: 1),
             const SizedBox(height: 16),
             Row(
               children: installments.map<Widget>((inst) {
@@ -444,9 +471,11 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 4.0),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF111827),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF374151)),
+                      color: isDark ? const Color(0xFF121318) : const Color(0xFFF1F3F4),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -455,25 +484,25 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
-                            color: accentColor.withValues(alpha: 0.8),
+                            color: accentColor.withValues(alpha: 0.9),
                             letterSpacing: 0.5,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           _currencyFormat.format(instAmount),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
-                        const Text(
+                        Text(
                           '/ month',
-                          style: TextStyle(fontSize: 8, color: Color(0xFF6B7280)),
+                          style: TextStyle(fontSize: 8, color: textSecondary),
                         ),
                       ],
                     ),
