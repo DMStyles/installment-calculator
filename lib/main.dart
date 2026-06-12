@@ -1,16 +1,46 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'app_settings.dart';
+import 'firebase_service.dart';
 import 'home_screen.dart';
 import 'notification_helper.dart';
 
+/// Handles FCM messages that arrive when the app is in the background/terminated.
+/// Must be a top-level function.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await FirebaseService.init();
+  // flutter_local_notifications shows the notification visually
+  await NotificationHelper.showFcmNotification(message);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Init Firebase (and request FCM permission + get token)
+  await FirebaseService.init();
+
+  // Register background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Init local notifications plugin (still used to display FCM messages)
   await NotificationHelper.init();
+
+  // Listen for FCM messages when app is in foreground
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    NotificationHelper.showFcmNotification(message);
+  });
 
   final settings = AppSettings();
   await settings.load();
+
+  // Sync settings to Firestore on startup
+  await FirebaseService.updateDeviceSettings(
+    enabled: settings.notificationsEnabled,
+    leadDays: settings.notificationLeadDays,
+  );
 
   runApp(
     ChangeNotifierProvider<AppSettings>.value(
@@ -19,6 +49,7 @@ void main() async {
     ),
   );
 }
+
 
 class InstallmentApp extends StatelessWidget {
   const InstallmentApp({super.key});

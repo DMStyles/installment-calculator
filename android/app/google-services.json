@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "786068498093",
+    "project_id": "installment-hub",
+    "storage_bucket": "installment-hub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:786068498093:android:282b6ee8fc3d956bcc0824",
+        "android_client_info": {
+          "package_name": "com.dmstyles.installment_calculator"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvgGhG90lcTTeuj1FtSxkU0mYKUDhsN-Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

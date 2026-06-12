@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'firebase_service.dart';
 
 class AppSettings extends ChangeNotifier {
   static const _keyDarkMode = 'setting_dark_mode';
@@ -35,6 +36,10 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyNotificationsEnabled, value);
+    await FirebaseService.updateDeviceSettings(
+      enabled: _notificationsEnabled,
+      leadDays: _notificationLeadDays,
+    );
   }
 
   Future<void> setNotificationLeadDays(int days) async {
@@ -42,5 +47,9 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyNotificationLeadDays, days);
+    await FirebaseService.updateDeviceSettings(
+      enabled: _notificationsEnabled,
+      leadDays: _notificationLeadDays,
+    );
   }
 }

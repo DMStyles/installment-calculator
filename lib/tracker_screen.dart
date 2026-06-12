@@ -1,11 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'app_settings.dart';
 import 'app_theme.dart';
-import 'notification_helper.dart';
+import 'firebase_service.dart';
 import 'widgets/bounce_tap.dart';
 import 'widgets/fade_in_item.dart';
 
@@ -71,10 +69,20 @@ class _TrackerScreenState extends State<TrackerScreen>
       }
     }
     setState(() => _isLoading = false);
+
+    // Sync with Firestore in the background
+    _syncToFirestore();
+
     // Animate FAB in after load
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _fabAnimController.forward();
     });
+  }
+
+  Future<void> _syncToFirestore() async {
+    for (var inst in _installments) {
+      await FirebaseService.saveInstallment(inst);
+    }
   }
 
   Future<void> _saveInstallments() async {
@@ -113,37 +121,25 @@ class _TrackerScreenState extends State<TrackerScreen>
         'amount': installmentAmount,
         'isPaid': i == 0 ? firstIsPaid : false,
       });
-
-      final bool shouldNotify = firstIsPaid ? i > 0 : true;
-      if (shouldNotify) {
-        try {
-          final settings = context.read<AppSettings>();
-          await NotificationHelper.scheduleNotification(
-            id: baseNotificationId + i,
-            title: 'Upcoming $name Payment',
-            body:
-                'Installment ${i + 1} of ${_currencyFormat.format(installmentAmount)} with $provider is due in ${settings.notificationLeadDays} day${settings.notificationLeadDays > 1 ? 's' : ''}.',
-            scheduledDate: paymentDate,
-            notificationsEnabled: settings.notificationsEnabled,
-            leadDays: settings.notificationLeadDays,
-          );
-        } catch (_) {}
-      }
     }
 
+    final installmentData = {
+      'id': id,
+      'name': name,
+      'provider': provider,
+      'totalAmount': amount,
+      'months': months,
+      'startDate': _dateFormat.format(startDate),
+      'payments': payments,
+    };
+
     setState(() {
-      _installments.add({
-        'id': id,
-        'name': name,
-        'provider': provider,
-        'totalAmount': amount,
-        'months': months,
-        'startDate': _dateFormat.format(startDate),
-        'payments': payments,
-      });
+      _installments.add(installmentData);
     });
 
     await _saveInstallments();
+    await FirebaseService.saveInstallment(installmentData);
+
     _nameController.clear();
     _amountController.clear();
     closeSheet();
@@ -158,6 +154,13 @@ class _TrackerScreenState extends State<TrackerScreen>
             List<Map<String, dynamic>>.from(_installments[idx]['payments']);
         payments[index]['isPaid'] = !payments[index]['isPaid'];
         _installments[idx]['payments'] = payments;
+
+        // Update Firestore
+        FirebaseService.updatePaymentStatus(
+          installmentId,
+          index,
+          payments[index]['isPaid'],
+        );
       }
     });
     _saveInstallments();
@@ -166,12 +169,7 @@ class _TrackerScreenState extends State<TrackerScreen>
   void _deleteInstallment(String id) async {
     setState(() => _installments.removeWhere((item) => item['id'] == id));
     await _saveInstallments();
-    try {
-      final int baseId = int.tryParse(id) ?? 0;
-      for (int i = 0; i < 12; i++) {
-        await NotificationHelper.cancelNotification(baseId + i);
-      }
-    } catch (_) {}
+    await FirebaseService.deleteInstallment(id);
   }
 
   Color _getProviderColor(String provider) {

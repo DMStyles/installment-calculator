@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_10y.dart' as tz;
@@ -84,6 +85,31 @@ class NotificationHelper {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
+  }
+
+  /// Displays a notification locally when an FCM message is received.
+  static Future<void> showFcmNotification(RemoteMessage message) async {
+    if (kIsWeb) return;
+    final notification = message.notification;
+    if (notification != null) {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'installment_reminders',
+        'Installment Reminders',
+        channelDescription: 'Notifications for upcoming installment payments',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+      );
+
+      const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+
+      await _notificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        platformDetails,
+      );
+    }
   }
 
   /// Cancels a single scheduled notification by ID.
