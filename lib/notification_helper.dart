@@ -30,7 +30,6 @@ class NotificationHelper {
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       if (androidPlugin != null) {
         await androidPlugin.requestNotificationsPermission();
-        await androidPlugin.requestExactAlarmsPermission();
       }
     }
   }
