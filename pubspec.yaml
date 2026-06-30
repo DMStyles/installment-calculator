@@ -3,7 +3,7 @@ description: A BNPL installment calculator for Koko, PayZy and MintPay.
 
 publish_to: 'none'
 
-version: 1.6.1+7
+version: 1.6.2+8
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
