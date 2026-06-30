@@ -109,17 +109,23 @@ class _TrackerScreenState extends State<TrackerScreen>
     final double installmentAmount = amount / months;
     final List<Map<String, dynamic>> payments = [];
 
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+
     for (int i = 0; i < months; i++) {
       final DateTime paymentDate = DateTime(
         startDate.year,
         startDate.month + i,
         startDate.day,
       );
+      final bool isPast = paymentDate.isBefore(today);
+      final bool isPaidDefault = i == 0 ? firstIsPaid : false;
+
       payments.add({
         'installmentIndex': i + 1,
         'dueDate': _dateFormat.format(paymentDate),
         'amount': installmentAmount,
-        'isPaid': i == 0 ? firstIsPaid : false,
+        'isPaid': isPast || isPaidDefault,
       });
     }
 

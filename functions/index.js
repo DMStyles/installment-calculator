@@ -46,7 +46,12 @@ exports.sendInstallmentReminders = onSchedule({
       }
 
       const leadDays = deviceData.notificationLeadDays || 1; // default to 1 day
-      const targetDateStr = getTargetDateString(leadDays);
+      
+      // Generate target date strings for [0, 1, ..., leadDays]
+      const allowedTargetDates = [];
+      for (let i = 0; i <= leadDays; i++) {
+        allowedTargetDates.push(getTargetDateString(i));
+      }
 
       // Fetch installments for this device
       const installmentsSnapshot = await deviceDoc.ref.collection("installments").get();
@@ -56,26 +61,39 @@ exports.sendInstallmentReminders = onSchedule({
         const payments = inst.payments || [];
 
         for (const payment of payments) {
-          // Check if unpaid and due date matches target date
-          if (!payment.isPaid && payment.dueDate === targetDateStr) {
-            const amountFormatted = Number(payment.amount).toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            });
+          if (!payment.isPaid) {
+            // Find which offset in the allowed target dates this payment's due date matches
+            const matchedOffset = allowedTargetDates.indexOf(payment.dueDate);
+            
+            if (matchedOffset !== -1) {
+              const amountFormatted = Number(payment.amount).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              });
 
-            console.log(`Scheduling notification to device ${deviceToken} for ${inst.name} due on ${payment.dueDate}`);
-
-            messages.push({
-              token: deviceToken,
-              notification: {
-                title: `Upcoming ${inst.name} Payment`,
-                body: `Installment ${payment.installmentIndex} of Rs. ${amountFormatted} with ${inst.provider} is due in ${leadDays} day${leadDays > 1 ? 's' : ''}.`,
-              },
-              data: {
-                installmentId: inst.id || "",
-                dueDate: payment.dueDate || "",
+              let dueText = "";
+              if (matchedOffset === 0) {
+                dueText = "is due today.";
+              } else if (matchedOffset === 1) {
+                dueText = "is due tomorrow.";
+              } else {
+                dueText = `is due in ${matchedOffset} days.`;
               }
-            });
+
+              console.log(`Scheduling notification to device ${deviceToken} for ${inst.name} due on ${payment.dueDate} (${dueText})`);
+
+              messages.push({
+                token: deviceToken,
+                notification: {
+                  title: `Upcoming ${inst.name} Payment`,
+                  body: `Installment ${payment.installmentIndex} of Rs. ${amountFormatted} with ${inst.provider} ${dueText}`,
+                },
+                data: {
+                  installmentId: inst.id || "",
+                  dueDate: payment.dueDate || "",
+                }
+              });
+            }
           }
         }
       }
