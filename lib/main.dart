@@ -12,8 +12,8 @@ import 'notification_helper.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await FirebaseService.init();
-  // flutter_local_notifications shows the notification visually
-  await NotificationHelper.showFcmNotification(message);
+  // The system automatically shows the push notification when in the background.
+  // We do not show it locally here to prevent duplicate notifications.
 }
 
 void main() async {
