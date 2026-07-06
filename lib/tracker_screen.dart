@@ -61,16 +61,46 @@ class _TrackerScreenState extends State<TrackerScreen>
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final String? data = prefs.getString('tracker_installments');
+    bool needsSave = false;
+
     if (data != null) {
       final List<dynamic> decoded = json.decode(data);
       _installments.clear();
       for (var item in decoded) {
-        _installments.add(Map<String, dynamic>.from(item));
+        final inst = Map<String, dynamic>.from(item);
+        
+        try {
+          final DateTime start = _dateFormat.parse(inst['startDate']);
+          final List<dynamic> rawPayments = inst['payments'];
+          final List<Map<String, dynamic>> updatedPayments = [];
+          
+          for (var p in rawPayments) {
+            final payment = Map<String, dynamic>.from(p);
+            final int index = payment['installmentIndex'];
+            final DateTime expectedDueDate = start.add(Duration(days: (index - 1) * 30));
+            final String expectedDueDateStr = _dateFormat.format(expectedDueDate);
+            
+            if (payment['dueDate'] != expectedDueDateStr) {
+              payment['dueDate'] = expectedDueDateStr;
+              needsSave = true;
+            }
+            updatedPayments.add(payment);
+          }
+          inst['payments'] = updatedPayments;
+        } catch (e) {
+          // Ignore parse errors
+        }
+
+        _installments.add(inst);
       }
     }
     setState(() => _isLoading = false);
 
-    // Sync with Firestore in the background
+    if (needsSave) {
+      await _saveInstallments();
+    }
+
+    // Sync with Firestore in the background (will upload the updated dates)
     _syncToFirestore();
 
     // Animate FAB in after load
