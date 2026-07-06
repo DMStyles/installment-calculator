@@ -113,11 +113,7 @@ class _TrackerScreenState extends State<TrackerScreen>
     final DateTime today = DateTime(now.year, now.month, now.day);
 
     for (int i = 0; i < months; i++) {
-      final DateTime paymentDate = DateTime(
-        startDate.year,
-        startDate.month + i,
-        startDate.day,
-      );
+      final DateTime paymentDate = startDate.add(Duration(days: i * 30));
       final bool isPast = paymentDate.isBefore(today);
       final bool isPaidDefault = i == 0 ? firstIsPaid : false;
 
