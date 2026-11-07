@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'app_settings.dart';
 import 'app_theme.dart';
+import 'guide_screen.dart';
+import 'page_transitions.dart';
 import 'update_checker.dart';
 import 'widgets/pixel_card.dart';
 import 'widgets/bounce_tap.dart';
@@ -266,6 +268,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _buildUpdateResultBanner(_updateResult!, textPrimary, textSecondary),
                         ],
                       ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ─── Help & Guides ─────────────────────────────────────────────
+          FadeInItem(
+            delay: const Duration(milliseconds: 220),
+            child: _sectionHeader('Help & Guides', textSecondary),
+          ),
+          const SizedBox(height: 8),
+          FadeInItem(
+            delay: const Duration(milliseconds: 240),
+            child: PixelCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _infoTile(
+                    icon: Icons.menu_book_rounded,
+                    iconColor: const Color(0xFF34D399),
+                    title: 'How to Use This App',
+                    trailing: Icon(Icons.arrow_forward_ios_rounded, color: textSecondary, size: 14),
+                    textPrimary: textPrimary,
+                    onTap: () => Navigator.push(
+                      context,
+                      PixelPageRoute(builder: (_) => const GuideScreen(initialTab: 0)),
+                    ),
+                  ),
+                  Divider(height: 1, color: AppTheme.border(context), indent: 54),
+                  _infoTile(
+                    icon: Icons.storefront_outlined,
+                    iconColor: const Color(0xFF818CF8),
+                    title: 'BNPL Shopping Guide',
+                    trailing: Icon(Icons.arrow_forward_ios_rounded, color: textSecondary, size: 14),
+                    textPrimary: textPrimary,
+                    onTap: () => Navigator.push(
+                      context,
+                      PixelPageRoute(builder: (_) => const GuideScreen(initialTab: 1)),
                     ),
                   ),
                 ],

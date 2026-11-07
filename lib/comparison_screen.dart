@@ -65,6 +65,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
       final mintpayFee = double.tryParse(_mintpayFeeCtrl.text) ?? 0.0;
 
       final kokoTotal = base + (base * kokoFee / 100);
+      final koko6MTotal = kokoTotal + (kokoTotal * 0.10);
       final payzyTotal = base + (base * payzyFee / 100);
       final mintpayTotal = base + (base * mintpayFee / 100);
 
@@ -72,6 +73,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
         'total': kokoTotal,
         'installments': [
           {'months': 3, 'amount': kokoTotal / 3},
+          {'months': 6, 'amount': koko6MTotal / 6},
         ],
       };
 

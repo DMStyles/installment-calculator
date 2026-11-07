@@ -204,24 +204,48 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        BounceTap(
-          onTap: () => Navigator.push(
-            context,
-            PixelPageRoute(builder: (_) => const SettingsScreen()),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.cardAlt(context),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.border(context)),
+        Row(
+          children: [
+            BounceTap(
+              onTap: () => Navigator.push(
+                context,
+                PixelPageRoute(builder: (_) => const GuideScreen()),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardAlt(context),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Icon(
+                  Icons.help_outline_rounded,
+                  color: AppTheme.textSecondary(context),
+                  size: 22,
+                ),
+              ),
             ),
-            child: Icon(
-              Icons.settings_outlined,
-              color: AppTheme.textSecondary(context),
-              size: 22,
+            const SizedBox(width: 8),
+            BounceTap(
+              onTap: () => Navigator.push(
+                context,
+                PixelPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardAlt(context),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Icon(
+                  Icons.settings_outlined,
+                  color: AppTheme.textSecondary(context),
+                  size: 22,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );

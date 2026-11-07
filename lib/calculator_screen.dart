@@ -18,7 +18,7 @@ class CalculatorScreen extends StatefulWidget {
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final TextEditingController _baseAmountCtrl = TextEditingController();
   final TextEditingController _procFeeCtrl = TextEditingController(text: '9');
-  final TextEditingController _secRateCtrl = TextEditingController(text: '6');
+  final TextEditingController _secRateCtrl = TextEditingController(text: '10');
   final TextEditingController _rawPriceCtrl = TextEditingController();
   final TextEditingController _checkoutPriceCtrl = TextEditingController();
 
@@ -645,7 +645,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       isDark: isDark,
                       title: 'Koko Secondary Rate Note',
                       body:
-                          'The secondary rate is charged by Koko itself, not the shop. Currently it stays at 6% but may change.',
+                          'The secondary rate is charged by Koko itself, not the shop. Koko recently updated this fee to 10% for extended 6-month repayment plans.',
                     ),
                   ],
                 ),
